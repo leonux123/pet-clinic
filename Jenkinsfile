@@ -1,6 +1,9 @@
 pipeline {
 
     agent any
+
+    // Scan will run everyday on master even if there are no new code changes.
+    triggers { cron( '@daily' ) }
     
     stages {
 
@@ -10,6 +13,23 @@ pipeline {
                 sh "mvn --batch-mode package" 
             }
         }
+	      stage('Dependency check') {
+      steps {
+          sh "mvn --batch-mode dependency-check:check"
+      }
+      post {
+          always {
+              publishHTML(target:[
+                   allowMissing: true,
+                   alwaysLinkToLastBuild: true,
+                   keepAll: true,
+                   reportDir: 'target',
+                   reportFiles: 'dependency-check-report.html',
+                   reportName: "OWASP Dependency Check Report"
+              ])
+          }
+      }
+  } 
 
         stage('Archive Unit Tests Results') {
             steps {
